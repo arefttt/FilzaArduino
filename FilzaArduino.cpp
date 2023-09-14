@@ -152,3 +152,88 @@ void FilzaArduino::rename(const char *newName) {
 void FilzaArduino::debugPrint(const char *message) {
    Serial.println(message); // Print the debug message to the serial monitor
 }
+size_t FilzaArduino::getFileSize(const char *filename) {
+  if (!SD.exists(filename)) {
+    debugPrint("File does not exist.");
+    return -1;
+  }
+  
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
+    debugPrint("Failed to open file.");
+    return -1;
+  }
+  
+  size_t fileSize = file.size();
+  file.close();
+  
+  debugPrint("File size obtained successfully.");
+  
+  return fileSize;
+}
+bool FilzaArduino::createDirectory(const char *path) {
+  if (SD.exists(path)) {
+    debugPrint("Directory already exists.");
+    return false;
+  }
+  bool created = SD.mkdir(path);
+  if (created) {
+    debugPrint("Directory created successfully.");
+  } else {
+    debugPrint("Failed to create directory.");
+  }
+  return created;
+}
+
+bool FilzaArduino::removeDirectory(const char *path) {
+  if (!SD.exists(path)) {
+    debugPrint("Directory does not exist.");
+    return false;
+  }
+  bool removed = SD.rmdir(path);
+  if (removed) {
+    debugPrint("Directory removed successfully.");
+  } else {
+    debugPrint("Failed to remove directory.");
+  }
+  return removed;
+}
+
+void FilzaArduino::listDirectory(const char *path) {
+  File dir = SD.open(path);
+  if (!dir) {
+    debugPrint("Failed to open directory.");
+    return;
+  }
+  
+  while (true) {
+    File entry = dir.openNextFile();
+    if (!entry) {
+      // No more files
+      break;
+    }
+    
+    Serial.print(entry.name());
+    
+    if (entry.isDirectory()) {
+      Serial.println("/");
+    } else {
+      // Files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    
+    entry.close();
+  }
+  
+  dir.close();
+}
+
+void FilzaArduino::changeDirectory(const char *path) {
+  if (SD.exists(path)) {
+    this->path = path;
+    debugPrint("Changed directory successfully.");
+  } else {
+    debugPrint("Failed to change directory. Directory does not exist.");
+  }
+}
