@@ -1,4 +1,12 @@
 #include "FilzaArduino.h"
+enum ErrorCode {
+  SUCCESS = 0,
+  FILE_NOT_FOUND,
+  FILE_OPEN_FAILED,
+  FILE_READ_FAILED,
+  FILE_WRITE_FAILED,
+  // Add more error codes as needed
+};
 
 FilzaArduino::FilzaArduino(const char *path, const char *filename) {
   this->path = path;
@@ -161,8 +169,8 @@ bool FilzaArduino::removeDirectory(const char *path) {
   return removed;
 }
 
-void FilzaArduino::listDirectory(const char *path) {
-  File dir = SD.open(path);
+void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
+  File dir = SD.open(dirname);
   if (!dir) {
     debugPrint("Failed to open directory.");
     return;
@@ -175,12 +183,19 @@ void FilzaArduino::listDirectory(const char *path) {
       break;
     }
     
+    for (int i = 0; i < numTabs; i++) {
+      Serial.print('\t');   // we'll have a nice indentation
+    }
+    
+    // Print the name
     Serial.print(entry.name());
     
+    // Recurse for directories, otherwise print the file size
     if (entry.isDirectory()) {
       Serial.println("/");
+      listDirectory(entry.name(), numTabs + 1);
     } else {
-      // Files have sizes, directories do not
+      // files have sizes, directories do not
       Serial.print("\t\t");
       Serial.println(entry.size(), DEC);
     }
@@ -190,6 +205,7 @@ void FilzaArduino::listDirectory(const char *path) {
   
   dir.close();
 }
+
 
 void FilzaArduino::changeDirectory(const char *path) {
   if (SD.exists(path)) {
@@ -219,3 +235,66 @@ size_t FilzaArduino::getFileSize(const char *filename) {
   
   return fileSize;
 }
+void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
+  File dir = SD.open(dirname);
+  if (!dir) {
+    debugPrint("Failed to open directory.");
+    return;
+  }
+  
+  while (true) {
+    File entry = dir.openNextFile();
+    if (!entry) {
+      // No more files
+      break;
+    }
+    
+    for (int i = 0; i < numTabs; i++) {
+      Serial.print('\t');   // we'll have a nice indentation
+    }
+    
+    // Print the name
+    Serial.print(entry.name());
+    
+    // Recurse for directories, otherwise print the file size
+    if (entry.isDirectory()) {
+      Serial.println("/");
+      listDirectory(entry.name(), numTabs + 1);
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    
+    entry.close();
+  }
+  
+  dir.close();
+}
+/*
+#include <CRC32.h>
+
+uint32_t FilzaArduino::calculateChecksum(const char *filename) {
+  if (!SD.exists(filename)) {
+    debugPrint("File does not exist.");
+    return 0;
+  }
+  
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
+    debugPrint("Failed to open file.");
+    return 0;
+  }
+  
+  CRC32 crc;
+  
+  while (file.available()) {
+    crc.update(file.read());
+  }
+  
+  file.close();
+  
+  debugPrint("Checksum calculated successfully.");
+  
+  return crc.finalize();
+}*/
