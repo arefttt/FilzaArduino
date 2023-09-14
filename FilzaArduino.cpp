@@ -271,7 +271,7 @@ void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   
   dir.close();
 }
-/*
+
 #include <CRC32.h>
 
 uint32_t FilzaArduino::calculateChecksum(const char *filename) {
@@ -297,4 +297,29 @@ uint32_t FilzaArduino::calculateChecksum(const char *filename) {
   debugPrint("Checksum calculated successfully.");
   
   return crc.finalize();
-}*/
+}
+String FilzaArduino::getFileType(const char *filename) {
+  String file = String(filename);
+  int dotIndex = file.lastIndexOf('.');
+  
+  if (dotIndex == -1) {
+    debugPrint("Unknown file type.");
+    return "unknown";
+  }
+  
+  String extension = file.substring(dotIndex + 1);
+  
+  if (extension.equalsIgnoreCase("txt")) {
+    debugPrint("Text file identified.");
+    return "text";
+  } else if (extension.equalsIgnoreCase("jpg") || extension.equalsIgnoreCase("png")) {
+    debugPrint("Image file identified.");
+    return "image";
+  } else if (extension.equalsIgnoreCase("bin")) {
+    debugPrint("Binary file identified.");
+    return "binary";
+  } else {
+    debugPrint("Unknown file type.");
+    return "unknown";
+  }
+}
