@@ -3,7 +3,6 @@
 FilzaArduino::FilzaArduino(const char *path, const char *filename) {
   this->path = path;
   this->filename = filename;
-  debugPrint("File object created.");
 }
 
 FilzaArduino::~FilzaArduino() {
@@ -14,22 +13,15 @@ FilzaArduino::~FilzaArduino() {
 }
 
 bool FilzaArduino::exists() {
-  bool fileExists = SD.exists(this->filename);
-  debugPrint(fileExists ? "File exists." : "File does not exist.");
-  return fileExists;
+  return SD.exists(this->filename);
 }
 
 bool FilzaArduino::remove() {
-  bool fileRemoved = SD.remove(this->filename);
-  debugPrint(fileRemoved ? "File removed." : "Failed to remove file.");
-  return fileRemoved;
+  return SD.remove(this->filename);
 }
 
 bool FilzaArduino::open(uint8_t mode) {
   this->file = SD.open(this->filename, mode);
-  bool fileOpened = this->file;
-  debugPrint(fileOpened ? "File opened." : "Failed to open file.");
-  return fileOpened;
 }
 
 void FilzaArduino::close() {
@@ -47,64 +39,52 @@ void FilzaArduino::save(float value) {
 }
 
 void FilzaArduino::save(const String &value) {
-  if (this->file) {
-    this->file.println(value);
-    debugPrint("String value saved.");
-  }
+   if (this->file) {
+     this->file.println(value);
+     debugPrint("String value saved.");
+   }
 }
 
 float FilzaArduino::readFloat() {
-  if (this->file) {
-    float value = this->file.parseFloat();
-    debugPrint("Float value read.");
-    return value;
-  }
-  debugPrint("Failed to read float value.");
-  return -1; // Return a default value or error code
+   if (this->file) {
+     return this->file.parseFloat();
+   }
+   return -1; // Return a default value or error code
 }
 
 String FilzaArduino::readString() {
-  if (this->file) {
-    String value = this->file.readStringUntil('\n');
-    debugPrint("String value read.");
-    return value;
-  }
-  debugPrint("Failed to read string value.");
-  return String(""); // Return a default value or error code
+   if (this->file) {
+     return this->file.readStringUntil('\n');
+   }
+   return String(""); // Return a default value or error code
 }
 
 void FilzaArduino::writeLine(const String &line) {
-  if (this->file) {
-    this->file.println(line);
-    debugPrint("Line written to file.");
-  }
+   if (this->file) {
+     this->file.println(line);
+     debugPrint("Line written to file.");
+   }
 }
 
 String FilzaArduino::readLine() {
-  if (this->file) {
-    String line = this->file.readStringUntil('\n');
-    debugPrint("Line read from file.");
-    return line;
-  }
-  debugPrint("Failed to read line from file.");
-  return String(""); // Return a default value or error code
+   if (this->file) {
+     return this->file.readStringUntil('\n');
+   }
+   return String(""); // Return a default value or error code
 }
 
 void FilzaArduino::writeBytes(const uint8_t *buffer, size_t size) {
-  if (this->file) {
-    this->file.write(buffer, size);
-    debugPrint("Bytes written to file.");
-  }
+   if (this->file) {
+     this->file.write(buffer, size);
+     debugPrint("Bytes written to file.");
+   }
 }
 
 size_t FilzaArduino::readBytes(uint8_t *buffer, size_t size) {
-  if (this->file) {
-    size_t bytesRead = this->file.read(buffer, size);
-    debugPrint("Bytes read from file.");
-    return bytesRead;
-  }
-  debugPrint("Failed to read bytes from file.");
-  return -1; // Return a default value or error code
+   if (this->file) {
+     return this->file.read(buffer, size);
+   }
+   return -1; // Return a default value or error code
 }
 
 void FilzaArduino::appendLine(const String &line) {
@@ -152,25 +132,7 @@ void FilzaArduino::rename(const char *newName) {
 void FilzaArduino::debugPrint(const char *message) {
    Serial.println(message); // Print the debug message to the serial monitor
 }
-size_t FilzaArduino::getFileSize(const char *filename) {
-  if (!SD.exists(filename)) {
-    debugPrint("File does not exist.");
-    return -1;
-  }
-  
-  File file = SD.open(filename, FILE_READ);
-  if (!file) {
-    debugPrint("Failed to open file.");
-    return -1;
-  }
-  
-  size_t fileSize = file.size();
-  file.close();
-  
-  debugPrint("File size obtained successfully.");
-  
-  return fileSize;
-}
+
 bool FilzaArduino::createDirectory(const char *path) {
   if (SD.exists(path)) {
     debugPrint("Directory already exists.");
@@ -236,4 +198,24 @@ void FilzaArduino::changeDirectory(const char *path) {
   } else {
     debugPrint("Failed to change directory. Directory does not exist.");
   }
+}
+
+size_t FilzaArduino::getFileSize(const char *filename) {
+  if (!SD.exists(filename)) {
+    debugPrint("File does not exist.");
+    return -1;
+  }
+  
+  File file = SD.open(filename, FILE_READ);
+  if (!file) {
+    debugPrint("Failed to open file.");
+    return -1;
+  }
+  
+  size_t fileSize = file.size();
+  file.close();
+  
+  debugPrint("File size obtained successfully.");
+  
+  return fileSize;
 }
