@@ -3,6 +3,7 @@
 
 #include <SD.h>
 #include <CRC32.h>
+#include <SdFat.h>
 
 enum ErrorCode {
   SUCCESS = 0,
@@ -51,6 +52,10 @@ public:
   uint32_t calculateChecksum(const char *filename);
   
   String getFileType(const char *filename);
+
+
+  uint32_t getTimestamp(const char *filename);
+  void setTimestamp(const char *filename, uint32_t timestamp);
 
 private:
   File file;
