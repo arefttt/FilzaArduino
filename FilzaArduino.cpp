@@ -1,5 +1,4 @@
 #include "FilzaArduino.h"
-#include <CRC32.h>
 
 enum ErrorCode {
   SUCCESS = 0,
@@ -398,4 +397,46 @@ String FilzaArduino::getFileType(const char *filename) {
     debugPrint("Unknown file type.");
     return "unknown";
   }
+}
+uint32_t FilzaArduino::getTimestamp(const char *filename) {
+  if (!SD.exists(filename)) {
+    debugPrint("File does not exist.");
+    return -1;
+  }
+  
+  SdFile file;
+  if (!file.open(filename, O_READ)) {
+    debugPrint("Failed to open file.");
+    return -1;
+  }
+  
+  dir_t dir;
+  if (!file.dirEntry(&dir)) {
+    debugPrint("Failed to get directory entry.");
+    return -1;
+  }
+  
+  file.close();
+  
+  return dir.creationDate;
+}
+
+void FilzaArduino::setTimestamp(const char *filename, uint32_t timestamp) {
+  if (!SD.exists(filename)) {
+    debugPrint("File does not exist.");
+    return;
+  }
+  
+  SdFile file;
+  if (!file.open(filename, O_WRITE)) {
+    debugPrint("Failed to open file.");
+    return;
+  }
+  
+  if (!file.timestamp(T_CREATE, timestamp)) {
+    debugPrint("Failed to set timestamp.");
+    return;
+  }
+  
+  file.close();
 }
