@@ -1,131 +1,154 @@
 #include "FilzaArduino.h"
 
-// Enable debug mode
-#define DEBUG
-
-// Define a macro for debug printing
-#ifdef DEBUG
- #define DEBUG_PRINT(x) Serial.println(x)
-#else
- #define DEBUG_PRINT(x)
-#endif
-
-// Constructor
-FilzaArduino::FilzaArduino(const char *path, const char *filename) : path(path), filename(filename), file(NULL) {
-  DEBUG_PRINT("FileHandler object created.");
+FilzaArduino::FilzaArduino(const char *path, const char *filename) {
+  this->path = path;
+  this->filename = filename;
+  debugPrint("File object created.");
 }
 
-// Destructor
 FilzaArduino::~FilzaArduino() {
-  if (file) {
-    file.close();
-    DEBUG_PRINT("File closed.");
+  if (this->file) {
+    this->file.close();
+    debugPrint("File closed.");
   }
 }
 
-// Check if the file exists
 bool FilzaArduino::exists() {
-  String fullPath = String(path) + "/" + String(filename);
-  bool fileExists = SD.exists(fullPath.c_str());
-  DEBUG_PRINT(String("File exists: ") + (fileExists ? "yes" : "no"));
+  bool fileExists = SD.exists(this->filename);
+  debugPrint(fileExists ? "File exists." : "File does not exist.");
   return fileExists;
 }
 
-// Remove the file
 bool FilzaArduino::remove() {
-  if (exists()) {
-    bool removed = SD.remove(filename);
-    DEBUG_PRINT(String("File removed: ") + (removed ? "yes" : "no"));
-    return removed;
-  }
-  return false;
+  bool fileRemoved = SD.remove(this->filename);
+  debugPrint(fileRemoved ? "File removed." : "Failed to remove file.");
+  return fileRemoved;
 }
 
-// Open the file
 bool FilzaArduino::open(uint8_t mode) {
-  if (file) {
-    DEBUG_PRINT("Error: File is already open.");
-    return false;
-  }
-  if (!exists()) {
-    DEBUG_PRINT("Error: File does not exist.");
-    return false;
-  }
-  String fullPath = String(path) + "/" + String(filename);
-  file = SD.open(fullPath.c_str(), mode);
-  if (!file) {
-    DEBUG_PRINT("Error: Unable to open file.");
-    return false;
-  }
-  DEBUG_PRINT("File opened successfully.");
-  return true;
+  this->file = SD.open(this->filename, mode);
+  bool fileOpened = this->file;
+  debugPrint(fileOpened ? "File opened." : "Failed to open file.");
+  return fileOpened;
 }
 
-// Close the file
 void FilzaArduino::close() {
-  if (file) {
-    file.close();
-    file = NULL;
-    DEBUG_PRINT("File closed successfully.");
+  if (this->file) {
+    this->file.close();
+    debugPrint("File closed.");
   }
 }
 
-// Save a float value to the file
 void FilzaArduino::save(float value) {
-  if (open(FILE_WRITE)) {
-    file.println(value);
-    close();
-    DEBUG_PRINT(String("Saved value to file: ") + value);
+  if (this->file) {
+    this->file.println(value);
+    debugPrint("Float value saved.");
   }
 }
 
-// Read a float value from the file
-float FilzaArduino::read() {
-  float value = 0.0;
-  if (open(FILE_READ)) {
-    value = file.parseFloat();
-    close();
-    DEBUG_PRINT(String("Read value from file: ") + value);
+void FilzaArduino::save(const String &value) {
+  if (this->file) {
+    this->file.println(value);
+    debugPrint("String value saved.");
   }
-  return value;
 }
 
-// Write a line to the file
+float FilzaArduino::readFloat() {
+  if (this->file) {
+    float value = this->file.parseFloat();
+    debugPrint("Float value read.");
+    return value;
+  }
+  debugPrint("Failed to read float value.");
+  return -1; // Return a default value or error code
+}
+
+String FilzaArduino::readString() {
+  if (this->file) {
+    String value = this->file.readStringUntil('\n');
+    debugPrint("String value read.");
+    return value;
+  }
+  debugPrint("Failed to read string value.");
+  return String(""); // Return a default value or error code
+}
+
 void FilzaArduino::writeLine(const String &line) {
-  if (open(FILE_WRITE)) {
-    file.println(line);
-    close();
-    DEBUG_PRINT(String("Wrote line to file: ") + line);
+  if (this->file) {
+    this->file.println(line);
+    debugPrint("Line written to file.");
   }
 }
 
-// Read a line from the file
 String FilzaArduino::readLine() {
-  String line = "";
-  if (open(FILE_READ)) {
-    line = file.readStringUntil('\n');
-    close();
-    DEBUG_PRINT(String("Read line from file: ") + line);
+  if (this->file) {
+    String line = this->file.readStringUntil('\n');
+    debugPrint("Line read from file.");
+    return line;
   }
-  return line;
+  debugPrint("Failed to read line from file.");
+  return String(""); // Return a default value or error code
 }
 
-// Write bytes to the file
 void FilzaArduino::writeBytes(const uint8_t *buffer, size_t size) {
-  if (open(FILE_WRITE)) {
-    file.write(buffer, size);
-    close();
-    DEBUG_PRINT(String("Wrote bytes to file."));
+  if (this->file) {
+    this->file.write(buffer, size);
+    debugPrint("Bytes written to file.");
   }
 }
 
-// Read bytes from the file
 size_t FilzaArduino::readBytes(uint8_t *buffer, size_t size) {
-  size_t bytesRead = 0;
-  if (open(FILE_READ)) {
-    bytesRead = file.read(buffer, size);
-    close();
-    DEBUG_PRINT(String("Read bytes from file."));
+  if (this->file) {
+    size_t bytesRead = this->file.read(buffer, size);
+    debugPrint("Bytes read from file.");
+    return bytesRead;
   }
-return bytesRead;
+  debugPrint("Failed to read bytes from file.");
+  return -1; // Return a default value or error code
+}
+
+void FilzaArduino::appendLine(const String &line) {
+   if (open(FILE_WRITE)) { // Open the file in write mode
+     writeLine(line); // Write the line to the file
+     close(); // Close the file
+     debugPrint("Line appended to file.");
+   } else {
+     debugPrint("Failed to append line to file.");
+   }
+}
+
+void FilzaArduino::move(const char *newPath) {
+   if (!SD.exists(newPath)) { // Check if the new path exists
+     File newFile = SD.open(newPath, FILE_WRITE); // Create a new file at the new path
+
+     open(FILE_READ); // Open the current file in read mode
+
+     // Copy the contents of the current file to the new file
+     while (available()) {
+       newFile.write(read());
+     }
+
+     close(); // Close the current file
+     newFile.close(); // Close the new file
+
+     remove(); // Remove the current file
+
+     this->path = newPath; // Update the path to the new path
+     debugPrint("File moved successfully.");
+   } else {
+     debugPrint("Failed to move file. New path already exists.");
+   }
+}
+
+void FilzaArduino::rename(const char *newName) {
+   const char *oldName = this->filename; // Save the old name
+
+   this->filename = newName; // Update the filename to the new name
+
+   move(oldName); // Move the file to the old name (which effectively renames it)
+   debugPrint("File renamed successfully.");
+}
+
+void FilzaArduino::debugPrint(const char *message) {
+   Serial.println(message); // Print the debug message to the serial monitor
 }
