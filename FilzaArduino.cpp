@@ -1,4 +1,6 @@
 #include "FilzaArduino.h"
+#include <CRC32.h>
+
 enum ErrorCode {
   SUCCESS = 0,
   FILE_NOT_FOUND,
@@ -8,11 +10,13 @@ enum ErrorCode {
   // Add more error codes as needed
 };
 
+// Constructor
 FilzaArduino::FilzaArduino(const char *path, const char *filename) {
   this->path = path;
   this->filename = filename;
 }
 
+// Destructor
 FilzaArduino::~FilzaArduino() {
   if (this->file) {
     this->file.close();
@@ -20,18 +24,34 @@ FilzaArduino::~FilzaArduino() {
   }
 }
 
+// Check if a file exists
 bool FilzaArduino::exists() {
   return SD.exists(this->filename);
 }
 
+// Remove a file
 bool FilzaArduino::remove() {
   return SD.remove(this->filename);
 }
 
+// Open a file
 bool FilzaArduino::open(uint8_t mode) {
+  if (!exists()) {
+    debugPrint("File does not exist.");
+    return false;
+  }
+  
   this->file = SD.open(this->filename, mode);
+  
+  if (!this->file) {
+    debugPrint("Failed to open file.");
+    return false;
+  }
+  
+  return true;
 }
 
+// Close a file
 void FilzaArduino::close() {
   if (this->file) {
     this->file.close();
@@ -39,77 +59,112 @@ void FilzaArduino::close() {
   }
 }
 
+// Save a float value to a file
 void FilzaArduino::save(float value) {
   if (this->file) {
     this->file.println(value);
     debugPrint("Float value saved.");
+  } else {
+    debugPrint("Failed to save float value. File is not open.");
   }
 }
 
+// Save a string value to a file
 void FilzaArduino::save(const String &value) {
    if (this->file) {
      this->file.println(value);
      debugPrint("String value saved.");
+   } else {
+     debugPrint("Failed to save string value. File is not open.");
    }
 }
 
+// Read a float value from a file
 float FilzaArduino::readFloat() {
    if (this->file) {
      return this->file.parseFloat();
+   } else {
+     debugPrint("Failed to read float value. File is not open.");
+     return -1; // Return a default value or error code
    }
-   return -1; // Return a default value or error code
 }
 
+// Read a string from a file
 String FilzaArduino::readString() {
    if (this->file) {
      return this->file.readStringUntil('\n');
+   } else {
+     debugPrint("Failed to read string. File is not open.");
+     return String(""); // Return a default value or error code
    }
-   return String(""); // Return a default value or error code
 }
 
+// Write a line to a file
 void FilzaArduino::writeLine(const String &line) {
    if (this->file) {
      this->file.println(line);
      debugPrint("Line written to file.");
+   } else {
+     debugPrint("Failed to write line. File is not open.");
    }
 }
 
+// Read a line from a file
 String FilzaArduino::readLine() {
    if (this->file) {
      return this->file.readStringUntil('\n');
+   } else {
+     debugPrint("Failed to read line. File is not open.");
+     return String(""); // Return a default value or error code
    }
-   return String(""); // Return a default value or error code
 }
 
+// Write bytes to a file
 void FilzaArduino::writeBytes(const uint8_t *buffer, size_t size) {
    if (this->file) {
      this->file.write(buffer, size);
      debugPrint("Bytes written to file.");
+   } else {
+     debugPrint("Failed to write bytes. File is not open.");
    }
 }
 
+// Read bytes from a file
 size_t FilzaArduino::readBytes(uint8_t *buffer, size_t size) {
    if (this->file) {
      return this->file.read(buffer, size);
+   } else {
+     debugPrint("Failed to read bytes. File is not open.");
+     return -1; // Return a default value or error code
    }
-   return -1; // Return a default value or error code
 }
 
+// Append a line to a file
 void FilzaArduino::appendLine(const String &line) {
+
    if (open(FILE_WRITE)) { // Open the file in write mode
      writeLine(line); // Write the line to the file
      close(); // Close the file
      debugPrint("Line appended to file.");
    } else {
-     debugPrint("Failed to append line to file.");
+     debugPrint("Failed to append line to file. File does not exist or could not be opened.");
    }
 }
 
+// Move a file to a new path
 void FilzaArduino::move(const char *newPath) {
    if (!SD.exists(newPath)) { // Check if the new path exists
      File newFile = SD.open(newPath, FILE_WRITE); // Create a new file at the new path
 
-     open(FILE_READ); // Open the current file in read mode
+     if (!newFile) {
+       debugPrint("Failed to create new file at new path.");
+       return;
+     }
+
+     if (!open(FILE_READ)) { // Open the current file in read mode
+       debugPrint("Failed to open current file in read mode.");
+       return;
+     }
 
      // Copy the contents of the current file to the new file
      while (available()) {
@@ -128,6 +183,7 @@ void FilzaArduino::move(const char *newPath) {
    }
 }
 
+// Rename a file
 void FilzaArduino::rename(const char *newName) {
    const char *oldName = this->filename; // Save the old name
 
@@ -137,40 +193,51 @@ void FilzaArduino::rename(const char *newName) {
    debugPrint("File renamed successfully.");
 }
 
+// Print a debug message to the serial monitor
 void FilzaArduino::debugPrint(const char *message) {
    Serial.println(message); // Print the debug message to the serial monitor
 }
 
+// Create a directory
 bool FilzaArduino::createDirectory(const char *path) {
   if (SD.exists(path)) {
     debugPrint("Directory already exists.");
     return false;
   }
+  
   bool created = SD.mkdir(path);
+  
   if (created) {
     debugPrint("Directory created successfully.");
   } else {
     debugPrint("Failed to create directory.");
   }
+  
   return created;
 }
 
+// Remove a directory
 bool FilzaArduino::removeDirectory(const char *path) {
   if (!SD.exists(path)) {
     debugPrint("Directory does not exist.");
     return false;
   }
+  
   bool removed = SD.rmdir(path);
+  
   if (removed) {
     debugPrint("Directory removed successfully.");
   } else {
     debugPrint("Failed to remove directory.");
   }
+  
   return removed;
 }
 
+// List the contents of a directory
 void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   File dir = SD.open(dirname);
+  
   if (!dir) {
     debugPrint("Failed to open directory.");
     return;
@@ -178,6 +245,7 @@ void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   
   while (true) {
     File entry = dir.openNextFile();
+    
     if (!entry) {
       // No more files
       break;
@@ -206,7 +274,7 @@ void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   dir.close();
 }
 
-
+// Change the current directory
 void FilzaArduino::changeDirectory(const char *path) {
   if (SD.exists(path)) {
     this->path = path;
@@ -216,6 +284,7 @@ void FilzaArduino::changeDirectory(const char *path) {
   }
 }
 
+// Get the size of a file
 size_t FilzaArduino::getFileSize(const char *filename) {
   if (!SD.exists(filename)) {
     debugPrint("File does not exist.");
@@ -223,6 +292,7 @@ size_t FilzaArduino::getFileSize(const char *filename) {
   }
   
   File file = SD.open(filename, FILE_READ);
+  
   if (!file) {
     debugPrint("Failed to open file.");
     return -1;
@@ -235,8 +305,11 @@ size_t FilzaArduino::getFileSize(const char *filename) {
   
   return fileSize;
 }
+
+// List the contents of a directory
 void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   File dir = SD.open(dirname);
+  
   if (!dir) {
     debugPrint("Failed to open directory.");
     return;
@@ -244,6 +317,7 @@ void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   
   while (true) {
     File entry = dir.openNextFile();
+    
     if (!entry) {
       // No more files
       break;
@@ -272,8 +346,7 @@ void FilzaArduino::listDirectory(const char *dirname, int numTabs) {
   dir.close();
 }
 
-#include <CRC32.h>
-
+// Calculate the checksum of a file
 uint32_t FilzaArduino::calculateChecksum(const char *filename) {
   if (!SD.exists(filename)) {
     debugPrint("File does not exist.");
@@ -281,6 +354,7 @@ uint32_t FilzaArduino::calculateChecksum(const char *filename) {
   }
   
   File file = SD.open(filename, FILE_READ);
+  
   if (!file) {
     debugPrint("Failed to open file.");
     return 0;
@@ -298,6 +372,8 @@ uint32_t FilzaArduino::calculateChecksum(const char *filename) {
   
   return crc.finalize();
 }
+
+// Get the type of a file based on its extension
 String FilzaArduino::getFileType(const char *filename) {
   String file = String(filename);
   int dotIndex = file.lastIndexOf('.');
